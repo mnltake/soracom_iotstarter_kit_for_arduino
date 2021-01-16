@@ -29,7 +29,7 @@ https://www.quectel.com/UploadImage/Downlad/Quectel_BG96_TCP(IP)_AT_Commands_Man
 soracom バイナリーパーサー
 https://dev.soracom.io/jp/docs/binary_parser/
 
-##出力例
+## 出力例
 
 AT+QISENDEX=0,"06a41c2003c8000102e101229f01a7"
 
