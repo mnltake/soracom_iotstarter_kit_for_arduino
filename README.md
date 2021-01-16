@@ -26,4 +26,31 @@ https://www.quectel.com/UploadImage/Downlad/Quectel_BG96_AT_Commands_Manual_V2.1
 BG96 TCP/IP AT Commands Manual
 https://www.quectel.com/UploadImage/Downlad/Quectel_BG96_TCP(IP)_AT_Commands_Manual_V1.0.pdf
 
+soracom バイナリーパーサー
+https://dev.soracom.io/jp/docs/binary_parser/
 
+#exsample
+
+AT+QISENDEX=0,"06a41c2003c8000102e101229f01a7"
+
+(send ATcomand to modemUART)
+
+temp:0:int:16:/100 hum:2:int:16:/100 press:4:int:16:7:+100000/100 uptime:6:uint:16 light:8:int:16 sound:10:int:16 dispflg:12:bool:7 movex:12:bool:6 movey:13:bool:5 movez:12:bool:4 volume:13:int:16
+
+(binary-parser)
+
+[
+  {
+    "temp": 17,
+    "hum": 72,
+    "press": 1009.68,
+    "uptime": 1,
+    "light": 737,
+    "sound": 290,
+    "dispflg": true,
+    "movex": false,
+    "movey": false,
+    "movez": true,
+    "volume": 423
+  }
+]
