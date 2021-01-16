@@ -100,7 +100,7 @@ void loop() {
   sendbyte=bitWrite(sendbyte,0,1);
   tcp_protocal();
   //udp_protocal(); /*NOT MOVE AT+QISENDEX Send Hex String command cannot be applied for “UDP SERVICE”*/
-  if(strstr(return_dat,"OK") == NULL){ 
+  if(strstr(return_dat,"OK") == NULL && strstr(return_dat,"ok") == NULL){ 
      tone(BUZZERPIN ,440);//ERROR beep
      delay(8000);} //WDT restart
   digitalWrite(LEDPIN, LOW);
