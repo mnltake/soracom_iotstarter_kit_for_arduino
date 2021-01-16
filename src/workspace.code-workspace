@@ -1,0 +1,12 @@
+{
+	"folders": [
+		{
+			"path": "..\\.pio"
+		},
+		{
+			"name": "BG96_TCP",
+			"path": ".."
+		}
+	],
+	"settings": {}
+}
