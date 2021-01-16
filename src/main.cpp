@@ -178,7 +178,7 @@ void tcp_send_dat(){
   hum_x100 = hum*100;
   int press_c = (int)(press-100000);
   char cmd[64]={"0"};
-  snprintf(cmd,sizeof(cmd),"AT+QISENDEX=0,\"%04x%04x%04x%04x%04x%04x%02x\"",tem_x100,hum_x100,press_c,upcount,light,sound,sendbyte);
+  snprintf(cmd,sizeof(cmd),"AT+QISENDEX=0,\"%04x%04x%04x%04x%04x%04x%02x04x\"",tem_x100,hum_x100,press_c,upcount,light,sound,sendbyte,volume);
   bg96_serial.println(cmd);
   Serial.println("println the tcp send data");
   Serial.println(cmd);
