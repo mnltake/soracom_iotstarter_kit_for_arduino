@@ -1,4 +1,3 @@
-
 #include "main.h"
 
 void setup() {
@@ -6,38 +5,38 @@ void setup() {
   pinMode(SOUNDSENSORPIN, INPUT);
   pinMode(VOLUMEPIN, INPUT);
   pinMode(BUTTONPIN, INPUT);
-  pinMode(RESETPIN, OUTPUT);
+  pinMode(BG96_RESETPIN, OUTPUT);
   pinMode(LED_BUILTIN, OUTPUT);
-  digitalWrite(RESETPIN, HIGH);//modem reset
+  pinMode(LEDPIN, OUTPUT);
+  digitalWrite(BG96_RESETPIN, HIGH);//modem reset
   u8x8.begin();
   u8x8.setFlipMode(U8X8_ENABLE_180_DEGREE_ROTATION);
   u8x8.setFont(u8x8_font_7x14B_1x2_f);
   u8x8.println("Start:");
   u8x8.println("Please wait");
   delay(100);
-  digitalWrite(RESETPIN, LOW);
-  pinMode(LEDPIN, OUTPUT);//LED ON
-  digitalWrite(LEDPIN, HIGH);
-  pinMode(13, OUTPUT);//board LED
+  digitalWrite(BG96_RESETPIN, LOW);//BG96 start
+  digitalWrite(LED_BUILTIN, HIGH);//LED_BUILTIN ON
   tone(BUZZERPIN ,440);//beep
   bg96_initial();
   bmp280.init();
   oled_write(0);
+  /*
   LIS.begin(Wire, 0x19);
   delay(100);
   LIS.setFullScaleRange(LIS3DHTR_RANGE_8G);
   LIS.setOutputDataRate(LIS3DHTR_DATARATE_50HZ);
   LIS.setHighSolution(true); 
+  */
+  noTone(BUZZERPIN);
 }
 
 void loop() {
   Watchdog.enable(8000);
-  noTone(BUZZERPIN);
-  digitalWrite(LEDPIN, LOW);
-  digitalWrite(LED_BUILTIN, HIGH);
+  digitalWrite(LED_BUILTIN, HIGH);//wake
   /* read sensor*/
   light= analogRead(LIGHTSENSORPIN);
-  Serial.println("light sensor is:");
+  Serial.print("light sensor is:");
   Serial.println(light);                
 
   long sum = 0;
@@ -46,23 +45,22 @@ void loop() {
     delay(5);
   }
   sound = sum / soundSamplingCount;
-  Serial.println("Sound sensor is:");
+  Serial.print("Sound sensor is:");
   Serial.println(sound);                 
 
-  temperature = DHT.read11(DHT11_PIN); 
-  tem = DHT.temperature*1.0;     //float
-  Serial.println("the Tmperature is:");
-  Serial.println(tem);               
-  
-  humidity = DHT.read11(DHT11_PIN);      //Read humidity data
-  hum = DHT.humidity* 1.0;       //int
-  Serial.println("Humidity is:");
-  Serial.println(hum);      
+  DHT.read11(DHT11_PIN); 
+  tem = DHT.temperature*1.0;    //float(℃)
+  Serial.print("Tmperature is:");
+  Serial.println(tem);
+     
+  hum = DHT.humidity* 1.0;      //int(%)
+  Serial.print("Humidity is:");
+  Serial.println(hum);
 
-  press = bmp280.getPressure() ;
-  Serial.println("AirPress is:");
-  Serial.println(press);             //Pa
-
+  press = bmp280.getPressure() ;//long(Pa)
+  Serial.print("AirPress is:");
+  Serial.println(press);
+  /*
   float sumx=0,sumy=0,sumz=0;
   for (int i = 0; i < accelSamplingCount; i++) {
     sumx += LIS.getAccelerationX();
@@ -73,42 +71,63 @@ void loop() {
   x = sumx / accelSamplingCount;
   y = sumy / accelSamplingCount;
   z = sumz / accelSamplingCount;
-  Serial.println("Acceleratin is:");
+  Serial.print("Acceleratin is:");
   Serial.print("x:"); Serial.print(x); Serial.print("  ");
-  Serial.print("y:"); Serial.print(y); Serial.print("  ");
-  Serial.print("z:"); Serial.println(z);
+  Serial.print(", y:"); Serial.print(y); Serial.print("  ");
+  Serial.print(", z:"); Serial.println(z);
   movex=(abs(x) >0.5)?true:false;
   movey=(abs(y) >0.5)?true:false;
   movez=(abs(z) >0.5)?true:false;
-
+  */
   volume=analogRead(VOLUMEPIN);
-  Serial.println("Volume is:");
+  Serial.print("Volume is:");
   Serial.println(volume);     
     
-  Serial.println("upcount is:");
+  Serial.print("upcount is:");
   Serial.println(upcount);                 
   
   //start send data
-  digitalWrite(LEDPIN, HIGH);
-  sendbyte=bitWrite(sendbyte,7,dispflg);
-  sendbyte=bitWrite(sendbyte,6,movex);
-  sendbyte=bitWrite(sendbyte,5,movey);
-  sendbyte=bitWrite(sendbyte,4,movez);
-  sendbyte=bitWrite(sendbyte,3,1);
-  sendbyte=bitWrite(sendbyte,2,1);
-  sendbyte=bitWrite(sendbyte,1,1);
-  sendbyte=bitWrite(sendbyte,0,1);
-  tcp_protocal();
-  //udp_protocal(); /*NOT MOVE AT+QISENDEX Send Hex String command cannot be applied for “UDP SERVICE”*/
-  if(strstr(return_dat,"OK") == NULL && strstr(return_dat,"ok") == NULL){ 
-     tone(BUZZERPIN ,440);//ERROR beep
-     delay(8000);} //WDT restart
-  digitalWrite(LEDPIN, LOW);
-
-  //sleep
+    //tcp_protocal();
+    tcp_send_dat();
+    delay(2000);
+    if(strstr(return_dat,"OK") == NULL && strstr(return_dat,"ok") == NULL  ){ 
+      tone(BUZZERPIN ,440);//ERROR beep
+      tcp_close();
+      mqtt_close();
+      delay(8000); //WDT restart
+    }
+    tcp_receive_dat();
+   //sleep loop
   digitalWrite(LED_BUILTIN, LOW);
-  for(int i=0 ;i<14;i++){
-   
+  for(int i=0 ;i<16;i++){
+    Watchdog.disable();
+    //Serial.println(i),
+    bg96_serial_clearbuf();
+    bg96_serial_read();
+    const char *p_msg;
+  if(strstr(return_dat,"QMTRECV") != NULL ){
+    Watchdog.reset();
+    Serial.print("rcvmsg= ");
+    p_msg=strstr(return_dat,"{\"cmd\"");
+    Serial.println(p_msg);
+    
+    DeserializationError error = deserializeJson(doc, p_msg);
+    if (error) {
+      Serial.print(F("deserializeJson() failed: "));
+      Serial.println(error.f_str());
+      return;
+    }
+    subcmd=doc["cmd"];
+    Serial.println(subcmd);
+    oled_write(0);
+    delay(1000);
+    }
+  if (subcmd==1){
+    digitalWrite(LEDPIN, HIGH);
+  }else{
+    digitalWrite(LEDPIN, LOW);
+  }
+  //OLED display
     if (digitalRead(BUTTONPIN)==HIGH){
       dispflg = !dispflg;
     }
@@ -126,7 +145,7 @@ void loop() {
 void oled_write(int i){
   u8x8.clear();
   u8x8.setCursor(0, 1);
-  switch (i%7){
+  switch (i%8){
     case 0:
     if(strstr(return_dat,"OK")!=NULL){
       u8x8.println("return:");
@@ -135,87 +154,129 @@ void oled_write(int i){
     }else if(strstr(return_dat,"ERROR")!=NULL){
       u8x8.println("return:");
       u8x8.println();
-      Serial.println("ERROR");
+      u8x8.println("ERROR");
+    }else {
+      u8x8.println(i);
+      u8x8.println("subcmd:");
+      u8x8.println(subcmd);
     }
       return;
     case 1:
+      u8x8.println(i);
       u8x8.println("Temperture:");
-      u8x8.println();
-      u8x8.println(tem);
+      u8x8.print(tem);u8x8.println(" \"C");
       return;
     case 2:
+      u8x8.println(i);
       u8x8.println("Humidity:");
-      u8x8.println();
-      u8x8.println(hum);
+      u8x8.print(hum);u8x8.println(" %");
       return;
     case 3:
+      u8x8.println(i);
       u8x8.println("Air Pressure:");
-      u8x8.println();
-      u8x8.println(press);
+      u8x8.print(press*0.01);u8x8.println(" hPa");
       return;
     case 4:
+      u8x8.println(i);
       u8x8.println("Light:");
-      u8x8.println();
       u8x8.println(light);
       return;
     case 5:
+      u8x8.println(i);
       u8x8.println("Sound:");
-      u8x8.println();
       u8x8.println(sound);
       return;
     case 6:
+      u8x8.println(i);
+      u8x8.println("Volume:");
+      u8x8.println(volume);
+      return;
+    case 7:
+      u8x8.println(i);
       u8x8.println("Up Count:");
       u8x8.println(upcount);
-      u8x8.print(int(i/7)+1);
-      u8x8.println("/2");
+      return;
+    default:
       return;
   }
 return;
 }
+
+/********tcp protocol*********/
+void tcp_protocal()
+{
+  tcp_send_dat();
+  delay(2000);
+  tcp_receive_dat();
+
+}
+
 void tcp_send_dat(){
   int tem_x100,hum_x100;
   tem_x100 = (int)(tem*100);
   hum_x100 = hum*100;
   int press_c = (int)(press-100000);
+  int sendbyte;
+  bitWrite(sendbyte,7,dispflg);
+  bitWrite(sendbyte,6,movex);
+  bitWrite(sendbyte,5,movey);
+  bitWrite(sendbyte,4,movez);
+  bitWrite(sendbyte,3,ledflg);
+  bitWrite(sendbyte,2,1);
+  bitWrite(sendbyte,1,1);
+  bitWrite(sendbyte,0,1);
   char cmd[64]={"0"};
-  snprintf(cmd,sizeof(cmd),"AT+QISENDEX=0,\"%04x%04x%04x%04x%04x%04x%02x04x\"",tem_x100,hum_x100,press_c,upcount,light,sound,sendbyte,volume);
+  snprintf(cmd,sizeof(cmd),"AT+QISENDEX=0,\"%04x%04x%04x%04x%04x%04x%02x%04x\"",tem_x100,hum_x100,press_c,upcount,light,sound,sendbyte,volume);
+  bg96_serial_clearbuf();
   bg96_serial.println(cmd);
-  Serial.println("println the tcp send data");
-  Serial.println(cmd);
+  delay(500);
+  bg96_serial_read();
+  //Serial.println(cmd);
+  //Serial.println("println the tcp send data");
+  Watchdog.reset();
 }
 
-void bg96_initial(){
+
+void tcp_receive_dat()
+{
+  Serial.println("receive TCP data:");
+  bg96_serial_clearbuf();
+  bg96_serial.println("AT+QIRD=0,1500");
+  delay(500);
+  bg96_serial_read();
+
+  }
+
+
+void  bg96_initial(){
   delay(1000);
-  Serial.begin(BAUD);            
-  bg96_serial.begin(BAUD);                 //open the Serial ,BAUD is 9600bps
+  Serial.begin(USB_BAUD);            
+  bg96_serial.begin(BG96_BAUD);                 //open the Serial ,BAUD is 9600bps
   Serial.println("start the serial port,BAUD is 9600bps.");
   delay(500);
-  Watchdog.reset();
-
-  bg96_at_cmd();
-  oled_write(0);
+  //bg96_at_cmd();
   /*
   delay(500);
   bg96_ate_cmd();
   delay(500);
   bg96_at_cimi();
   bg96_at_csq();
-  delay(500);
-  bg96_at_cereg();
-  delay(500);
-  */
-  bg96_at_cgpaddr();
-  delay(500);
+  delay(500);*/
+  //bg96_at_cereg();
+  //delay(500);
+  //bg96_at_cgpaddr();
+  //delay(500);
   Watchdog.reset();
   //tcp_config();
   tcp_close();
   delay(500);
   tcp_config();
+  mqtt_config();
   }
-
 
 void bg96_serial_read()
 {
+  delay(500);
   int i = 0;
   memset(return_dat, 0, sizeof(return_dat));
   bg96_serial.flush();
@@ -227,6 +288,7 @@ void bg96_serial_read()
   }
   return_dat[i] = '\0';
   Serial.println(return_dat);
+
 }
 
 void bg96_serial_clearbuf()
@@ -249,34 +311,48 @@ void start_tcp(){
   Serial.println(cmd);
   bg96_serial.println(cmd);
   bg96_serial_read();
+
   if(strstr(return_dat,"OK")!=NULL){
     Serial.println("the tcp already connect");
     break;}
   }
-  }
-/********tcp protocol*********/
-void tcp_protocal()
-{
-  tcp_send_dat();
-  delay(3000);
-  tcp_receive_dat();
-  }
+}
 void tcp_close()
 {
   Serial.println("close tcp server.");
   bg96_serial_clearbuf();
   bg96_serial.println("AT+QICLOSE=0");
   bg96_serial_read();
-  }
+}
 
-void tcp_receive_dat()
+/********mqtt protocol*********/
+void mqtt_config()
 {
-  Serial.println("receive TCP data:");
   bg96_serial_clearbuf();
-  bg96_serial.println("AT+QIRD=0,1500");
+  bg96_serial.println("AT+QMTOPEN=1,\"beam.soracom.io\",1883");//MQTT
   bg96_serial_read();
-  }
+  bg96_serial_clearbuf();
+  bg96_serial.println("AT+QMTCONN=1,\"soracom\"");
+  bg96_serial_read();
+  bg96_serial_clearbuf();
+  bg96_serial.println("AT+QMTSUB=1,1,\"soracom/cmd/1\",0");
+  bg96_serial_read();
+}
 
+
+void mqtt_close()
+{
+  Serial.println("disconnect mqtt");
+  bg96_serial_clearbuf();
+  bg96_serial.println("AT+QMTDISC=1");
+  bg96_serial_read();
+  Serial.println("close mqtt.");
+  bg96_serial_clearbuf();
+  bg96_serial.println("AT+QMTCLOSE=1");
+  bg96_serial_read();
+}
+
+/**********AT comade*******/
  void bg96_at_cmd(){
   Serial.println("\n");
   Serial.println("send the at command,wait for return \"OK\"");
@@ -289,7 +365,8 @@ void tcp_receive_dat()
       break;}
     else 
       delay(1000);
-    }}
+    }
+ }
 
  void bg96_ate_cmd(){
   Serial.println("close the return display");
@@ -346,6 +423,7 @@ void bg96_at_cereg()
   while(1){
     bg96_serial_clearbuf();
     bg96_serial.println("AT+CEREG?");
+    delay(500);
     bg96_serial_read();
     if(strstr(return_dat,"+CEREG: 0,1") != NULL)
     {
@@ -363,84 +441,6 @@ void bg96_at_cgpaddr(){
   Serial.println("look for the temporary IP");
     bg96_serial_clearbuf();
     bg96_serial.println("AT+CGPADDR");
+    delay(500);
     bg96_serial_read();
 }
-
-/********udp protocol*********/
-void udp_protocal(){
-  start_udp();
-  udp_hardware();
-  udp_send();
-  udp_recieve();
-  udp_close();
-}
-void snprintf_fun1(){
-  char cmd[64]={"0"};
-  snprintf(cmd,sizeof(cmd),"AT+QIOPEN=1,2,\"UDP SERVICE\",\"%s\",0,%d,0",UDP_server,UDP_port);
-  Serial.println(cmd);
-  bg96_serial.println(cmd);
-  }
-void start_udp()
-{
-  Serial.println("Start a UDP Service.");
-  while(1){
-  bg96_serial_clearbuf();
-  snprintf_fun1();
-  bg96_serial_read();
-  if(strstr(return_dat,"+QIOPEN: 2,0")){
-    Serial.println("the udp server already set up");
-    break;}
-   else{
-    while(1){
-    Serial.println("close the UDP service");
-    bg96_serial_clearbuf();
-    bg96_serial.println("AT+QICLOSE=2");
-    bg96_serial_read();
-    if(strstr(return_dat,"OK")!=NULL)
-    break;
-    }
-    }
-  }
-  }
-void udp_hardware(){
-   bg96_serial_clearbuf();
-   bg96_serial.println("AT+QISTATE=0,1");
-   bg96_serial_read();
-  }
-void udp_send()
-{
-  int tem_x100,hum_x100;
-  tem_x100 = (int)(tem*100);
-  hum_x100 = hum*100;
-  int press_c = (int)(press-100000);
-  char cmd[64]={"0"};
-  char cmd1[64]={"0"};
-  snprintf(cmd1,sizeof(cmd1),"AT+QISENDEX=0,\"%04x%04x%04x%04x%04x%04x\"",tem_x100,hum_x100,press_c,upcount,light,sound);
-  bg96_serial_clearbuf();
-  Serial.println("Send UDP Data to Remote");
-  //snprintf(cmd1,sizeof(cmd1),"dragino-->tem=%d.%d,hum=%d.%d",tem_h,tem_l,hum_h,hum_l);
-  snprintf(cmd,sizeof(cmd),"AT+QISEND=2,%d,\"%s\",%d",(strlen(cmd1)+1),UDP_server,UDP_port);
-  Serial.println(cmd);
-  bg96_serial.println(cmd);
-  bg96_serial_read();
-  if(strstr(return_dat,">")!=NULL){
-  bg96_serial.println(cmd1);
-    }
-  bg96_serial_read();
-  }
-
-void udp_recieve()
-{
- delay(2000);
- Serial.println("receive the UDP data:");
- bg96_serial_clearbuf();
- bg96_serial.println("AT+QIRD=2");
- bg96_serial_read();
-  }
-void udp_close()
-{
-  Serial.println("close the udp service");
-  bg96_serial_clearbuf();
-  bg96_serial.println("AT+QICLOSE=2");
-  bg96_serial_read();
-  }

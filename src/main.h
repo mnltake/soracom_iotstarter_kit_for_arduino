@@ -1,46 +1,76 @@
+/*
+soracom device ->(binary data) -> soracom Unified Endpoint
+
+->(bianary parser)
+temp:0:int:16:/100 hum:2:int:16:/100 press:4:int:16:7:+100000/100 upcount:6:uint:16 light:8:int:16 
+sound:10:int:16 dispflg:12:bool:7 movex:12:bool:6 movey:13:bool:5 movez:12:bool:4 ledflg:12:bool:3 volume:13:int:16
+
+-> soracom Harvest -> soracom Lagoon -> LINE alart
+
+-> soracom funnnel -> AWS IoT core(MQTT Publish) -> AWS SNS ,AWS DynamoDB...
+
+soracom device(MQTT Subscribe) <- soracom beam <- AWS IoT core <- AWS Lambda <- Amazone API Gateway <- LINE Messaging API 
+
+*/
 #include <Arduino.h>
-#include <SoftwareSerial.h>
-#include <stdio.h>
-#include <stdlib.h>
-#include <dht.h>
-#include <Seeed_BMP280.h>
-#include <LIS3DHTR.h>
-#include <Adafruit_SleepyDog.h>
-#include <U8x8lib.h>
-#define BAUD 9600
+
+#define BG96_BAUD 9600
+#define USB_BAUD 9600
+#define VOLUMEPIN A0
+#define BG96_RESETPIN A1
+#define SOUNDSENSORPIN A2
+#define LIGHTSENSORPIN A6
 #define DHT11_PIN 3
 #define LEDPIN 4
-#define RESETPIN A1
 #define BUZZERPIN 5
-#define LIGHTSENSORPIN A6
-#define SOUNDSENSORPIN A2
-#define VOLUMEPIN 0
 #define BUTTONPIN 6
-#define bg96_rx  10
-#define bg96_tx  11
-SoftwareSerial bg96_serial(bg96_rx, bg96_tx);
+#define LED_BUILTIN 13
+
+//BG96 UART
+#include <SoftwareSerial.h>
+#define BG96_RX  10
+#define BG96_TX  11
+SoftwareSerial bg96_serial(BG96_RX, BG96_TX);
+
+//OLED
+#include <U8x8lib.h>
 U8X8_SSD1306_128X64_NONAME_HW_I2C u8x8(/* clock=*/ SCL, /* data=*/ SDA, /* reset=*/ U8X8_PIN_NONE);
 #define U8X8_ENABLE_180_DEGREE_ROTATION 1
+/*
+//3-axis Acceleration
+#include <LIS3DHTR.h>
 LIS3DHTR<TwoWire> LIS;
-BMP280 bmp280;
+int accelSamplingCount=5;float x,y,z;
+*/
+//Temprerature Humidity
+#include <dht.h>
 dht DHT;
-//parameter
-bool dispflg =true,movex=false,movey=false,movez=false;
-float tem,x, y, z;   
-unsigned int uptime,upcount=1,soundSamplingCount=5,accelSamplingCount=5;   
-int light,sound,hum,temperature,humidity,volume;
+float tem; int hum;  
+
+//Air Pressure
+#include <Seeed_BMP280.h>
+BMP280 bmp280;
 long press;
-int sendbyte=0x0000;
-/******define software Serial port*******/
 
-/******define the udp parameter const*******/
-const char UDP_server[] = "uni.soracom.io";
-const int UDP_port = 23080;
+//MQTT subscribe command
+#include <ArduinoJson.h>
+StaticJsonDocument<20> doc;
+int subcmd=0;
+
+
+//sllep watchdog timer
+#include <Adafruit_SleepyDog.h>
+
+//analog and bit parameter
+bool dispflg =true,movex=false,movey=false,movez=false,ledflg=false;
+unsigned int upcount=1;
+int light,sound,volume,soundSamplingCount=5;
+
 /******define the tcp parameter const*******/
-const char TCP_server[] = "uni.soracom.io";
+const char TCP_server[] = "uni.soracom.io";//soracom Unified Endpoint
 const int TCP_port = 23080;
+static char return_dat[256] = {"\0"};   //save  return all data
 
-static char return_dat[256] = {"\0"};   //save the UE return all data
 void bg96_initial();
 void bg96_serial_read();
 void bg96_serial_clearbuf();
@@ -50,21 +80,13 @@ void tcp_protocal();
 void tcp_send_dat();
 void tcp_receive_dat();
 void tcp_close();
-void snprintf_fun1();
+void mqtt_config();
+void mqtt_close();
+void topic_read();
 void bg96_at_cmd();
 void bg96_ate_cmd();/* Echo mode*/
 void bg96_at_cimi();/* International Mobile ID and Serial Number*/
 void bg96_at_csq();/* Signal Quality*/
 void bg96_at_cereg();/*EPS Network Registration Status*/
 void bg96_at_cgpaddr();/*IP Address*/
-void udp_protocal();
-void snprintf_fun1();
-void start_udp();
-void udp_hardware();
-void udp_send();
-void udp_recieve();
-void udp_close();
 void oled_write(int i);
-
-
-
