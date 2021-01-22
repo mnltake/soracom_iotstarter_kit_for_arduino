@@ -58,7 +58,7 @@ temp:0:int:16:/100 hum:2:int:16:/100 press:4:int:16:7:+100000/100 upcount:6:uint
     "volume": 42
   }
 ]
-
+## Stream
 soracom device ->(binary data) -> soracom Unified Endpoint->(bianary parser)
 
 　　　　　　　　-> soracom Harvest -> soracom Lagoon -> LINE alart
