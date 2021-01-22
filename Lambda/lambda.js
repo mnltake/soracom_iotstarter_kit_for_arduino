@@ -18,7 +18,7 @@ exports.handler = function(event, context) {
         payload: new Buffer('{\"cmd\":0}') || 'STRING_VALUE',
         qos: 0
     }
-    var params_timer = {
+    var params_disp = {
         topic: '/soracom/cmd/1', // required
         payload: new Buffer('{\"cmd\":2}') || 'STRING_VALUE',
         qos: 0
@@ -58,7 +58,7 @@ exports.handler = function(event, context) {
                 "type":"text",
                 //"text": "タイマー運転中"
             }];
-            iotdata.publish(params_timer, function(err, data) {
+            iotdata.publish(params_disp, function(err, data) {
                 if (err) console.log("AWS IoT Error:",err, err.stack); // an error occurred
                 else     console.log("AWS IoT Success:",data);           // successful response             
             });
@@ -91,8 +91,8 @@ exports.handler = function(event, context) {
                         },   
                         {
                             "type": "message",
-                            "label": "タイマー",
-                            "text": "timer"
+                            "label": "画面切り替え",
+                            "text": "disp"
                         },
                         {
                             "type": "uri",

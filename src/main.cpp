@@ -107,6 +107,7 @@ void loop() {
     const char *p_msg;
   if(strstr(return_dat,"QMTRECV") != NULL ){
     Watchdog.reset();
+    i=99;
     Serial.print("rcvmsg= ");
     p_msg=strstr(return_dat,"{\"cmd\"");
     Serial.println(p_msg);
@@ -123,8 +124,12 @@ void loop() {
     delay(1000);
     }
   if (subcmd==1){
+    ledflg=true;
     digitalWrite(LEDPIN, HIGH);
-  }else{
+  }else if (subcmd==2){
+     dispflg = !dispflg;  
+  }else if (subcmd==0){
+    ledflg=false;
     digitalWrite(LEDPIN, LOW);
   }
   //OLED display
