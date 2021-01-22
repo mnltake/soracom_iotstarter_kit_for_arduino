@@ -59,10 +59,10 @@ temp:0:int:16:/100 hum:2:int:16:/100 press:4:int:16:7:+100000/100 upcount:6:uint
   }
 ]
 ## Stream
-soracom device ->(binary data) -> soracom Unified Endpoint->(bianary parser)
+soracom device ->TCP(binary data) -> soracom Unified Endpoint->(bianary parser)
 
-　　　　　　　　-> soracom Harvest -> soracom Lagoon -> LINE alart
+　　　　　　　　-> soracom HarvestData(database) -> soracom Lagoon(dashboard) -> ALART (LINE ,Slack,Email...)
 
-　　　　　　　　-> soracom funnnel -> AWS IoT core(MQTT Publish) -> AWS SNS ,AWS DynamoDB...
+　　　　　　　　-> soracom funnnel(MQTT Publish)  -> AWS IoT core-> AWS SNS ,AWS DynamoDB...
 
-soracom device(MQTT Subscribe) <- soracom beam <- AWS IoT core <- AWS Lambda <- Amazone API Gateway <- LINE Messaging API 
+soracom device(MQTT Subscribe) <- soracom Beam <- AWS IoT core <- AWS Lambda <- Amazone API Gateway <- LINE Messaging API 
