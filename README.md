@@ -5,6 +5,9 @@ sample
 IoT スターターキット for Arduino
 https://soracom.jp/store/5243/
 
+IoTオンライン講座 | Arduinoとセンサーで屋内環境モニタリングシステムを作ろう
+https://youtu.be/T_AnmgM_1t4
+
 LTE-M Shield for Arduino
 https://soracom.jp/store/5303/
 
@@ -26,31 +29,43 @@ https://www.quectel.com/UploadImage/Downlad/Quectel_BG96_AT_Commands_Manual_V2.1
 BG96 TCP/IP AT Commands Manual
 https://www.quectel.com/UploadImage/Downlad/Quectel_BG96_TCP(IP)_AT_Commands_Manual_V1.0.pdf
 
+BG96_MQTT_Application_Note_V1.1
+https://www.quectel.com/UploadImage/Downlad/Quectel_BG96_MQTT_Application_Note_V1.1.pdf
+
 soracom バイナリーパーサー
 https://dev.soracom.io/jp/docs/binary_parser/
 
 ## 出力例
 
-AT+QISENDEX=0,"06a41c2003c8000102e101229f01a7"
+AT+QISENDEX=0,"06a4132405cc001a02e300ac87002a"
 
 (send ATcomand to modemUART)
 
-temp:0:int:16:/100 hum:2:int:16:/100 press:4:int:16:7:+100000/100 uptime:6:uint:16 light:8:int:16 sound:10:int:16 dispflg:12:bool:7 movex:12:bool:6 movey:13:bool:5 movez:12:bool:4 volume:13:int:16
+temp:0:int:16:/100 hum:2:int:16:/100 press:4:int:16:7:+100000/100 upcount:6:uint:16 light:8:int:16 sound:10:int:16 dispflg:12:bool:7 movex:12:bool:6 movey:13:bool:5 movez:12:bool:4 ledflg:12:bool:3 volume:13:int:16
 
 (binary-parser)
 
-[
+[[
   {
     "temp": 17,
-    "hum": 72,
-    "press": 1009.68,
-    "uptime": 1,
-    "light": 737,
-    "sound": 290,
+    "hum": 49,
+    "press": 1014.84,
+    "upcount": 26,
+    "light": 739,
+    "sound": 172,
     "dispflg": true,
     "movex": false,
     "movey": false,
-    "movez": true,
-    "volume": 423
+    "movez": false,
+    "ledflg": false,
+    "volume": 42
   }
 ]
+## Stream
+soracom device ->TCP(binary data) -> soracom Unified Endpoint->(bianary parser)
+
+　　　　　　　　-> soracom HarvestData(database) -> soracom Lagoon(dashboard) -> ALART (LINE ,Slack,Email...)
+
+　　　　　　　　-> soracom funnnel(MQTT Publish)  -> AWS IoT core-> AWS SNS ,AWS DynamoDB...
+
+soracom device(MQTT Subscribe) <- soracom Beam <- AWS IoT core <- AWS Lambda <- Amazone API Gateway <- LINE Messaging API 
