@@ -1,17 +1,3 @@
-/*
-soracom device ->(binary data) -> soracom Unified Endpoint
-
-->(bianary parser)
-temp:0:int:16:/100 hum:2:int:16:/100 press:4:int:16:7:+100000/100 upcount:6:uint:16 light:8:int:16 
-sound:10:int:16 dispflg:12:bool:7 movex:12:bool:6 movey:13:bool:5 movez:12:bool:4 ledflg:12:bool:3 volume:13:int:16
-
--> soracom Harvest -> soracom Lagoon -> LINE alart
-
--> soracom funnnel -> AWS IoT core(MQTT Publish) -> AWS SNS ,AWS DynamoDB...
-
-soracom device(MQTT Subscribe) <- soracom beam <- AWS IoT core <- AWS Lambda <- Amazone API Gateway <- LINE Messaging API 
-
-*/
 #include <Arduino.h>
 
 #define BG96_BAUD 9600
@@ -50,13 +36,17 @@ float tem; int hum;
 //Air Pressure
 #include <Seeed_BMP280.h>
 BMP280 bmp280;
-long press;
+long press;float tempbmp;
 
 //MQTT subscribe command
 #include <ArduinoJson.h>
 StaticJsonDocument<20> doc;
 int subcmd=0;
 
+//EEPROM
+#include <EEPROM.h>
+#define EEPROMINDENX 10
+byte savebyte,sendbyte;
 
 //sllep watchdog timer
 #include <Adafruit_SleepyDog.h>

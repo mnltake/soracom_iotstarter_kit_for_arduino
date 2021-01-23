@@ -1,3 +1,4 @@
+
 #include "main.h"
 
 void setup() {
@@ -28,6 +29,15 @@ void setup() {
   LIS.setOutputDataRate(LIS3DHTR_DATARATE_50HZ);
   LIS.setHighSolution(true); 
   */
+  savebyte = EEPROM.read(EEPROMINDENX);
+  Serial.println(savebyte, BIN);
+  if (savebyte == 0xff){ //factory default
+    savebyte = 0b10000101;
+  }
+  sendbyte=savebyte;
+  dispflg=bitRead(sendbyte,7);
+  ledflg=bitRead(sendbyte,3);
+
   noTone(BUZZERPIN);
 }
 
@@ -82,10 +92,27 @@ void loop() {
   volume=analogRead(VOLUMEPIN);
   Serial.print("Volume is:");
   Serial.println(volume);     
-    
+  
+  tempbmp = bmp280.getTemperature() ;//flaot(℃)
+  Serial.print("TempBMP280 is:");
+  Serial.println(tempbmp);
+  
   Serial.print("upcount is:");
   Serial.println(upcount);                 
-  
+  bitWrite(sendbyte,7,dispflg);
+  bitWrite(sendbyte,6,movex);
+  bitWrite(sendbyte,5,movey);
+  bitWrite(sendbyte,4,movez);
+  bitWrite(sendbyte,3,ledflg);
+  bitWrite(sendbyte,2,1);
+  bitWrite(sendbyte,1,0);
+  bitWrite(sendbyte,0,1);
+  if (sendbyte != savebyte){
+    Serial.println("Save byte to EEPROM");
+    EEPROM.write(EEPROMINDENX, sendbyte);
+  }
+  Serial.println(sendbyte, BIN);
+  savebyte = sendbyte;
   //start send data
     //tcp_protocal();
     tcp_send_dat();
@@ -99,7 +126,7 @@ void loop() {
     tcp_receive_dat();
    //sleep loop
   digitalWrite(LED_BUILTIN, LOW);
-  for(int i=0 ;i<16;i++){
+  for(int i=0 ;i<18;i++){
     Watchdog.disable();
     //Serial.println(i),
     bg96_serial_clearbuf();
@@ -107,11 +134,10 @@ void loop() {
     const char *p_msg;
   if(strstr(return_dat,"QMTRECV") != NULL ){
     Watchdog.reset();
-    i=99;
     Serial.print("rcvmsg= ");
     p_msg=strstr(return_dat,"{\"cmd\"");
     Serial.println(p_msg);
-    
+    i=99;
     DeserializationError error = deserializeJson(doc, p_msg);
     if (error) {
       Serial.print(F("deserializeJson() failed: "));
@@ -122,16 +148,17 @@ void loop() {
     Serial.println(subcmd);
     oled_write(0);
     delay(1000);
+  
+    if (subcmd==1){
+      ledflg=true;
+    }else if(subcmd==0){
+      ledflg=false;
+    }else if(subcmd==2){
+      dispflg= !dispflg;
     }
-  if (subcmd==1){
-    ledflg=true;
-    digitalWrite(LEDPIN, HIGH);
-  }else if (subcmd==2){
-     dispflg = !dispflg;  
-  }else if (subcmd==0){
-    ledflg=false;
-    digitalWrite(LEDPIN, LOW);
+
   }
+  digitalWrite(LEDPIN, ledflg);
   //OLED display
     if (digitalRead(BUTTONPIN)==HIGH){
       dispflg = !dispflg;
@@ -150,7 +177,7 @@ void loop() {
 void oled_write(int i){
   u8x8.clear();
   u8x8.setCursor(0, 1);
-  switch (i%8){
+  switch (i%9){
     case 0:
     if(strstr(return_dat,"OK")!=NULL){
       u8x8.println("return:");
@@ -198,6 +225,11 @@ void oled_write(int i){
       return;
     case 7:
       u8x8.println(i);
+      u8x8.println("TempBMP280:");
+      u8x8.println(tempbmp);
+      return;
+    case 8:
+      u8x8.println(i);
       u8x8.println("Up Count:");
       u8x8.println(upcount);
       return;
@@ -217,21 +249,16 @@ void tcp_protocal()
 }
 
 void tcp_send_dat(){
-  int tem_x100,hum_x100;
+  int tem_x100,hum_x100,tempbmp_x100;
   tem_x100 = (int)(tem*100);
   hum_x100 = hum*100;
+  tempbmp_x100 = tempbmp*100;
   int press_c = (int)(press-100000);
-  int sendbyte;
-  bitWrite(sendbyte,7,dispflg);
-  bitWrite(sendbyte,6,movex);
-  bitWrite(sendbyte,5,movey);
-  bitWrite(sendbyte,4,movez);
-  bitWrite(sendbyte,3,ledflg);
-  bitWrite(sendbyte,2,1);
-  bitWrite(sendbyte,1,1);
-  bitWrite(sendbyte,0,1);
+
+
   char cmd[64]={"0"};
-  snprintf(cmd,sizeof(cmd),"AT+QISENDEX=0,\"%04x%04x%04x%04x%04x%04x%02x%04x\"",tem_x100,hum_x100,press_c,upcount,light,sound,sendbyte,volume);
+  snprintf(cmd,sizeof(cmd),"AT+QISENDEX=0,\"%04x%04x%04x%04x%04x%04x%02x%04x%04x\"",
+  tem_x100,hum_x100,press_c,upcount,light,sound,sendbyte,volume,tempbmp_x100);
   bg96_serial_clearbuf();
   bg96_serial.println(cmd);
   delay(500);
