@@ -5,6 +5,9 @@ sample
 IoT スターターキット for Arduino
 https://soracom.jp/store/5243/
 
+IoTオンライン講座 | Arduinoとセンサーで屋内環境モニタリングシステムを作ろう
+https://youtu.be/T_AnmgM_1t4
+
 LTE-M Shield for Arduino
 https://soracom.jp/store/5303/
 
