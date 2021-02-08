@@ -41,6 +41,10 @@ https://www.quectel.com/UploadImage/Downlad/Quectel_BG96_MQTT_Application_Note_V
 soracom バイナリーパーサー
 https://dev.soracom.io/jp/docs/binary_parser/
 
+## プレゼン資料
+
+https://www.slideshare.net/secret/fsarRga89yyD0b
+
 ## 出力例
 
 AT+QISENDEX=0,"06a4132405cc001a02e300ac87002a"
