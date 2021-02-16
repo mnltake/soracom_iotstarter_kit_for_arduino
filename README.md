@@ -8,6 +8,9 @@ https://soracom.jp/store/5243/
 IoTオンライン講座 | Arduinoとセンサーで屋内環境モニタリングシステムを作ろう
 https://youtu.be/T_AnmgM_1t4
 
+soracom公式サンプル集
+https://github.com/soracom-labs/arduino-dragino-unified
+
 LTE-M Shield for Arduino
 https://soracom.jp/store/5303/
 
@@ -17,11 +20,17 @@ https://dev.soracom.io/jp/start/iotstarter_kit_for_arduino/
 Grove Beginner Kit For Arduino
 https://wiki.seeedstudio.com/Grove-Beginner-Kit-For-Arduino/
 
+Arduino_SensorKit library
+https://github.com/arduino-libraries/Arduino_SensorKit
+
 NB-IoT Shield wiki
 http://wiki.dragino.com/index.php?title=NB-IoT_Shield#BG96_example
 
 dragino/NB-IoT github
 https://github.com/dragino/NB-IoT
+
+回路図
+https://github.com/dragino/NB-IoT/tree/master/NB-IoT%20Shield/hardware/IoT%20Shield/v1.2
 
 BG96 AT Commands Manual
 https://www.quectel.com/UploadImage/Downlad/Quectel_BG96_AT_Commands_Manual_V2.1.pdf
@@ -34,6 +43,10 @@ https://www.quectel.com/UploadImage/Downlad/Quectel_BG96_MQTT_Application_Note_V
 
 soracom バイナリーパーサー
 https://dev.soracom.io/jp/docs/binary_parser/
+
+## プレゼン資料
+
+https://www.slideshare.net/secret/fsarRga89yyD0b
 
 ## 出力例
 
