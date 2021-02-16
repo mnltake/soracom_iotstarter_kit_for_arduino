@@ -75,6 +75,8 @@ temp:0:int:16:/100 hum:2:int:16:/100 press:4:int:16:7:+100000/100 upcount:6:uint
   }
 ]
 ## Stream
+
+![steam](https://github.com/mnltake/soracom_iotstarter_kit_for_arduino/blob/main/steam.jpg)
 soracom device ->TCP(binary data) -> soracom Unified Endpoint->(bianary parser)
 
 　　　　　　　　-> soracom HarvestData(database) -> soracom Lagoon(dashboard) -> ALART (LINE ,Slack,Email...)
