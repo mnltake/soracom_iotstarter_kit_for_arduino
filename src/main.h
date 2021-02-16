@@ -81,4 +81,3 @@ void bg96_at_cereg();/*EPS Network Registration Status*/
 void bg96_at_cgpaddr();/*IP Address*/
 void oled_write(int i);
 void bg96_powersave_enable();
-void bg96_powersave_disable();
