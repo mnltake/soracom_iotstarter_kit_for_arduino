@@ -59,7 +59,7 @@ int light,sound,volume,soundSamplingCount=5;
 /******define the tcp parameter const*******/
 const char TCP_server[] = "uni.soracom.io";//soracom Unified Endpoint
 const int TCP_port = 23080;
-static char return_dat[256] = {"\0"};   //save  return all data
+static char return_dat[128] = {"\0"};   //save  return all data
 
 void bg96_initial();
 void bg96_serial_read();
@@ -80,3 +80,5 @@ void bg96_at_csq();/* Signal Quality*/
 void bg96_at_cereg();/*EPS Network Registration Status*/
 void bg96_at_cgpaddr();/*IP Address*/
 void oled_write(int i);
+void bg96_powersave_enable();
+void bg96_powersave_disable();

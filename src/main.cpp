@@ -42,6 +42,8 @@ void setup() {
 }
 
 void loop() {
+  bg96_powersave_disable();
+  delay(500);
   Watchdog.enable(8000);
   digitalWrite(LED_BUILTIN, HIGH);//wake
   /* read sensor*/
@@ -125,6 +127,7 @@ void loop() {
     }
     tcp_receive_dat();
    //sleep loop
+  bg96_powersave_enable();
   digitalWrite(LED_BUILTIN, LOW);
   for(int i=0 ;i<18;i++){
     Watchdog.disable();
@@ -475,4 +478,20 @@ void bg96_at_cgpaddr(){
     bg96_serial.println("AT+CGPADDR");
     delay(500);
     bg96_serial_read();
+}
+
+void bg96_powersave_enable(){
+  Serial.println("Power save mode setting");
+  bg96_serial_clearbuf();
+  bg96_serial.println("AT+CPSMS=1,,,\"10100001\",\"00000000\"");//1min powersave 0sec active
+  delay(300);
+  bg96_serial_read();
+}
+
+void bg96_powersave_disable(){
+  Serial.println("Power save mode disable");
+  bg96_serial_clearbuf();
+  bg96_serial.println("AT+CPSMS=0");
+  delay(300);
+  bg96_serial_read();
 }
