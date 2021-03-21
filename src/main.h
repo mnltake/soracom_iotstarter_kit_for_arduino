@@ -28,6 +28,22 @@ U8X8_SSD1306_128X64_NONAME_HW_I2C u8x8(/* clock=*/ SCL, /* data=*/ SDA, /* reset
 LIS3DHTR<TwoWire> LIS;
 int accelSamplingCount=5;float x,y,z;
 */
+//onewire
+#include <OneWire.h>
+#include <DallasTemperature.h>
+#define ONE_WIRE_BUS 2 // データ(黄)で使用するポート番号
+
+#define SENSER_BIT    12      // 精度の設定bit
+OneWire oneWire(ONE_WIRE_BUS);
+DallasTemperature sensors(&oneWire);
+float temp_inside,temp_outside;
+//relay
+
+#define RELAY200V 7
+int relay_rate, send_rate,  resettimer =0;;
+//sllep watchdog timer
+#include <Adafruit_SleepyDog.h>
+/*
 //Temprerature Humidity
 #include <dht.h>
 dht DHT;
@@ -48,14 +64,13 @@ int subcmd=0;
 #define EEPROMINDENX 10
 byte savebyte,sendbyte;
 
-//sllep watchdog timer
-#include <Adafruit_SleepyDog.h>
+
 
 //analog and bit parameter
 bool dispflg =true,movex=false,movey=false,movez=false,ledflg=false;
 unsigned int upcount=1;
 int light,sound,volume,soundSamplingCount=5;
-
+*/
 /******define the tcp parameter const*******/
 const char TCP_server[] = "uni.soracom.io";//soracom Unified Endpoint
 const int TCP_port = 23080;

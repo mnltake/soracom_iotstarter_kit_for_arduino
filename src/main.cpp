@@ -2,33 +2,40 @@
 #include "main.h"
 
 void setup() {
-  pinMode(LIGHTSENSORPIN, INPUT);
-  pinMode(SOUNDSENSORPIN, INPUT);
-  pinMode(VOLUMEPIN, INPUT);
-  pinMode(BUTTONPIN, INPUT);
+  //pinMode(LIGHTSENSORPIN, INPUT);
+  //pinMode(SOUNDSENSORPIN, INPUT);
+  //pinMode(VOLUMEPIN, INPUT);
+  //pinMode(BUTTONPIN, INPUT);
+
+  pinMode( RELAY200V, INPUT_PULLUP);
   pinMode(BG96_RESETPIN, OUTPUT);
   pinMode(LED_BUILTIN, OUTPUT);
   pinMode(LEDPIN, OUTPUT);
   digitalWrite(BG96_RESETPIN, HIGH);//modem reset
+  /*
   u8x8.begin();
   u8x8.setFlipMode(U8X8_ENABLE_180_DEGREE_ROTATION);
   u8x8.setFont(u8x8_font_7x14B_1x2_f);
   u8x8.println("Start:");
   u8x8.println("Please wait");
-  delay(100);
+  */
+  delay(300);
   digitalWrite(BG96_RESETPIN, LOW);//BG96 start
   digitalWrite(LED_BUILTIN, HIGH);//LED_BUILTIN ON
-  tone(BUZZERPIN ,440);//beep
+  //tone(BUZZERPIN ,440);//beep
   bg96_initial();
-  bmp280.init();
-  oled_write(0);
+  sensors.setResolution(SENSER_BIT);
+  Watchdog.enable(8000);
+  //bmp280.init();
+  //oled_write(0);
+
   /*
   LIS.begin(Wire, 0x19);
   delay(100);
   LIS.setFullScaleRange(LIS3DHTR_RANGE_8G);
   LIS.setOutputDataRate(LIS3DHTR_DATARATE_50HZ);
   LIS.setHighSolution(true); 
-  */
+ 
   savebyte = EEPROM.read(EEPROMINDENX);
   Serial.println(savebyte, BIN);
   if (savebyte == 0xff){ //factory default
@@ -39,13 +46,66 @@ void setup() {
   ledflg=bitRead(sendbyte,3);
 
   noTone(BUZZERPIN);
+   */
 }
 
 void loop() {
-  delay(500);
-  Watchdog.enable(8000);
-  digitalWrite(LED_BUILTIN, HIGH);//wake
+  int relay_on =0;
+  //10min loop
+  for(int m = 0; m < 10; m++) {
+    resettimer++;
+    relay_rate = relay_on / 6 ;
+    Serial.print("relay_rate: ");
+    Serial.println(relay_rate);
+    sensors.requestTemperatures();// 温度取得要求
+    temp_inside =sensors.getTempCByIndex(1);
+    delay(1);
+    //sensors.requestTemperatures();// 温度取得要求
+    temp_outside =sensors.getTempCByIndex(0);
+    if (m != 9){
+      send_rate = 0;
+    }else{
+      send_rate = relay_rate;
+    }
+    Serial.print("resettimer:  ");
+    Serial.println(resettimer);
+    Serial.print("temp_inside:  ");
+    Serial.println(temp_inside);
+    Serial.print("temp_outside:  "); 
+    Serial.println(temp_outside); 
+    digitalWrite(LED_BUILTIN, HIGH);
+    tcp_send_dat();
+    delay(2000);
+    if(strstr(return_dat,"OK") == NULL && strstr(return_dat,"ok") == NULL  ){ 
+      //tone(BUZZERPIN ,440);//ERROR beep
+      tcp_close();
+      //mqtt_close();
+      delay(8000); //WDT restart
+    }
+    tcp_receive_dat();
+    digitalWrite(LED_BUILTIN, LOW);
+    //60s loop
+    for(int i = 0; i < 60; i++){
+      Watchdog.reset();
+      digitalWrite(LED_BUILTIN, HIGH);
+      if (!digitalRead( RELAY200V)) {
+         relay_on +=1;
+      }
+      delay(90);
+      digitalWrite(LED_BUILTIN, LOW);
+      delay(750);
+    } 
+  }  
+  
+  if (resettimer > 1440){
+    delay(8000);
+  }
+}
+
+
+
   /* read sensor*/
+  /*
   light= analogRead(LIGHTSENSORPIN);
   Serial.print("light sensor is:");
   Serial.println(light);                
@@ -71,6 +131,8 @@ void loop() {
   press = bmp280.getPressure() ;//long(Pa)
   Serial.print("AirPress is:");
   Serial.println(press);
+  */
+
   /*
   float sumx=0,sumy=0,sumz=0;
   for (int i = 0; i < accelSamplingCount; i++) {
@@ -90,6 +152,7 @@ void loop() {
   movey=(abs(y) >0.5)?true:false;
   movez=(abs(z) >0.5)?true:false;
   */
+  /*
   volume=analogRead(VOLUMEPIN);
   Serial.print("Volume is:");
   Serial.println(volume);     
@@ -250,16 +313,9 @@ void tcp_protocal()
 }
 
 void tcp_send_dat(){
-  int tem_x100,hum_x100,tempbmp_x100;
-  tem_x100 = (int)(tem*100);
-  hum_x100 = hum*100;
-  tempbmp_x100 = tempbmp*100;
-  int press_c = (int)(press-100000);
-
-
   char cmd[64]={"0"};
-  snprintf(cmd,sizeof(cmd),"AT+QISENDEX=0,\"%04x%04x%04x%04x%04x%04x%02x%04x%04x\"",
-  tem_x100,hum_x100,press_c,upcount,light,sound,sendbyte,volume,tempbmp_x100);
+  snprintf(cmd,sizeof(cmd),"AT+QISENDEX=0,\"%04x%04x%04x%04x\"",
+  (int)(temp_inside*100),(int)(temp_outside*100),send_rate,resettimer);
   bg96_serial_clearbuf();
   bg96_serial.println(cmd);
   delay(500);
@@ -304,7 +360,7 @@ void  bg96_initial(){
   tcp_close();
   delay(500);
   tcp_config();
-  mqtt_config();
+  //mqtt_config();
   bg96_powersave_enable();
   }
 
