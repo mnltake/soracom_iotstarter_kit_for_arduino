@@ -313,7 +313,7 @@ void tcp_protocal()
 }
 
 void tcp_send_dat(){
-  char cmd[64]={"0"};
+  char cmd[40]={"0"};
   snprintf(cmd,sizeof(cmd),"AT+QISENDEX=0,\"%04x%04x%04x%04x\"",
   (int)(temp_inside*100),(int)(temp_outside*100),send_rate,resettimer);
   bg96_serial_clearbuf();
