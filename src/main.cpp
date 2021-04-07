@@ -53,6 +53,17 @@ void loop() {
   int relay_on =0;
   //10min loop
   for(int m = 0; m < 10; m++) {
+    //60s loop
+    for(int i = 0; i < 60; i++){
+      Watchdog.reset();
+      digitalWrite(LED_BUILTIN, HIGH);
+      if (!digitalRead( RELAY200V)) {
+          relay_on +=1;
+      }
+      delay(90);
+      digitalWrite(LED_BUILTIN, LOW);
+      delay(750);
+    } 
     resettimer++;
     relay_rate = relay_on / 6 ;
     Serial.print("relay_rate: ");
@@ -84,17 +95,6 @@ void loop() {
     }
     tcp_receive_dat();
     digitalWrite(LED_BUILTIN, LOW);
-    //60s loop
-    for(int i = 0; i < 60; i++){
-      Watchdog.reset();
-      digitalWrite(LED_BUILTIN, HIGH);
-      if (!digitalRead( RELAY200V)) {
-         relay_on +=1;
-      }
-      delay(90);
-      digitalWrite(LED_BUILTIN, LOW);
-      delay(750);
-    } 
   }  
   
   if (resettimer > 1440){
