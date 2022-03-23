@@ -316,6 +316,7 @@ void tcp_send_dat(){
   char cmd[40]={"0"};
   snprintf(cmd,sizeof(cmd),"AT+QISENDEX=0,\"%04x%04x%04x%04x\"",
   (int)(temp_inside*100),(int)(temp_outside*100),send_rate,resettimer);
+  // temp_inside:0:int:16:/100 temp_outside:2:int:16:/100 relay_rate:4:int:16 reset_time:6:int:16
   bg96_serial_clearbuf();
   bg96_serial.println(cmd);
   delay(500);
